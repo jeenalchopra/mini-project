@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credit Card Fraud Detection</title>
+  <style>
+    .error { color: red; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Credit Card Form</h2>
+  <form id="creditCardForm">
+    <label for="cardNumber">Card Number:</label>
+    <input type="text" id="cardNumber" name="cardNumber" required />
+    <div id="cardNumberError" class="error"></div><br><br>
+
+    <label for="expiryDate">Expiry Date (MM/YY):</label>
+    <input type="text" id="expiryDate" name="expiryDate" required />
+    <div id="expiryDateError" class="error"></div><br><br>
+
+    <label for="cvv">CVV:</label>
+    <input type="text" id="cvv" name="cvv" required />
+    <div id="cvvError" class="error"></div><br><br>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    // Luhn Algorithm to validate the credit card number
+    function luhnCheck(cardNumber) {
+      let sum = 0;
+      let shouldDouble = false;
+      for (let i = cardNumber.length - 1; i >= 0; i--) {
+        let digit = parseInt(cardNumber.charAt(i), 10);
+        if (shouldDouble) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        shouldDouble = !shouldDouble;
+      }
+      return sum % 10 === 0;
+    }
+
+    // Validate card number using Luhn Algorithm
+    function validateCardNumber(cardNumber) {
+      cardNumber = cardNumber.replace(/\D/g, ''); // remove non-numeric characters
+      if (cardNumber.length < 13 || cardNumber.length > 19) {
+        return 'Invalid card number length';
+      }
+      if (!luhnCheck(cardNumber)) {
+        return 'Invalid card number (Luhn check failed)';
+      }
+      return '';
+    }
+
+    // Validate Expiry Date (MM/YY)
+    function validateExpiryDate(expiryDate) {
+      const now = new Date();
+      const [month, year] = expiryDate.split('/').map(part => part.trim());
+      if (!month || !year || month.length !== 2 || year.length !== 2 || isNaN(month) || isNaN(year)) {
+        return 'Invalid expiry date format (MM/YY)';
+      }
+      const expiry = new Date(`20${year}-${month}-01`);
+      if (expiry < now) {
+        return 'Expired card';
+      }
+      return '';
+    }
+
+    // Validate CVV (3 or 4 digits)
+    function validateCVV(cvv) {
+      if (cvv.length !== 3 && cvv.length !== 4) {
+        return 'Invalid CVV length';
+      }
+      if (!/^\d+$/.test(cvv)) {
+        return 'CVV must be numeric';
+      }
+      return '';
+    }
+
+    // Card Type Detection (for example, Visa, MasterCard)
+    function getCardType(cardNumber) {
+      const cardPatterns = {
+        'Visa': /^4/,
+        'MasterCard': /^5[1-5]/,
+        'American Express': /^3[47]/,
+        'Discover': /^6(?:011|5)/,
+      };
+      for (const [cardType, pattern] of Object.entries(cardPatterns)) {
+        if (pattern.test(cardNumber)) {
+          return cardType;
+        }
+      }
+      return 'Unknown Card Type';
+    }
+
+    // Handle form submission
+    document.getElementById('creditCardForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const cardNumber = document.getElementById('cardNumber').value;
+      const expiryDate = document.getElementById('expiryDate').value;
+      const cvv = document.getElementById('cvv').value;
+
+      let valid = true;
+
+      // Clear previous errors
+      document.getElementById('cardNumberError').textContent = '';
+      document.getElementById('expiryDateError').textContent = '';
+      document.getElementById('cvvError').textContent = '';
+
+      // Validate Card Number
+      const cardNumberError = validateCardNumber(cardNumber);
+      if (cardNumberError) {
+        document.getElementById('cardNumberError').textContent = cardNumberError;
+        valid = false;
+      } else {
+        const cardType = getCardType(cardNumber);
+        console.log('Detected Card Type:', cardType);  // For debugging purposes
+      }
+
+      // Validate Expiry Date
+      const expiryDateError = validateExpiryDate(expiryDate);
+      if (expiryDateError) {
+        document.getElementById('expiryDateError').textContent = expiryDateError;
+        valid = false;
+      }
+
+      // Validate CVV
+      const cvvError = validateCVV(cvv);
+      if (cvvError) {
+        document.getElementById('cvvError').textContent = cvvError;
+        valid = false;
+      }
+
+      if (valid) {
+        alert('Form submitted successfully');
+        // You can proceed with form submission to backend
+      } else {
+        alert('Please correct the errors.');
+      }
+    });
+  </script>
+
+</body>
+</html>
